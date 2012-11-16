@@ -1,0 +1,6 @@
+from simple_rest import Resource
+from django.http import HttpResponse
+
+class TicketsResource(Resource):
+    def get(request):
+        return HttpResponse('tickets')

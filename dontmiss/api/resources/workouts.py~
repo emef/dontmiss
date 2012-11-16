@@ -1,0 +1,6 @@
+from simple_rest import Resource
+from dontmiss.api.http import JsonResponse
+
+class WorkoutsResource(Resource):
+    def get(request):
+        pass
