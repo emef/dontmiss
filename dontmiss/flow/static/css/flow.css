@@ -54,6 +54,8 @@ body {
 
 .day.workout {
     background: white;
+    border: 1px solid #eee;
+
 }
 
 .day .day_of_week {
