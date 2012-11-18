@@ -9,27 +9,37 @@ env.roledefs = {
 
 
 env.user = "matt"
-env.project_dir = '/usr/django/dontmiss/'
+env.project_dir = '/home/matt/src/dontmiss/'
+env.env_prefix = 'source ably/bin/activate'
 
 @roles('web')
 def update_env():
     with cd(env.project_dir):
-        run('git stash')
-        run('pip install requirements.txt')
+        with prefix(env.env_prefix):
+            run('pip install -r requirements.txt')
+
+def git_push():
+    local('git add .')
+    local('git commit -am "[AUTO COMMIT]"')
+    local('git push origin master')
 
 @roles('web')
 def git_pull():
     with cd(env.project_dir):
         run('git stash')
         run('git pull origin master')
+        with prefix(env.env_prefix):
+            run('python manage.py collectstatic --noinput')
 
 @roles('web')
 def restart_webserver():
-    with prefix('source %s/orchard/bin/activate' % freshenv_path):
-        sudo('service uwsgi restart')
-        sudo('/etc/init.d/nginx restart')
+    with cd(env.project_dir):
+        with prefix(env.env_prefix):
+            run('uwsgi --ini dontmiss/uwsgi.ini')
+            sudo('/etc/init.d/nginx restart')
 
 def deploy():
+    execute(git_push)
     execute(git_pull)
     execute(update_env)
     execute(restart_webserver)

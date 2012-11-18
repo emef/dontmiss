@@ -333,6 +333,6 @@ String.prototype.format = function() {
 
     $(document).ready(function() {
         window.DM = new DontMiss();
-        DM.login('matt@freshplum.com');
+//        DM.login('matt@freshplum.com');
     });
 }(jQuery));
