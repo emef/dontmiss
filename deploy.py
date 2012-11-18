@@ -33,7 +33,7 @@ def git_pull():
         run('git stash')
         run('git pull origin master')
         with prefix(env.env_prefix):
-            run('python manage.py collectstatic --noinput')
+            run('python manage.py collectstatic -c --noinput')
 
 @roles('web')
 def restart_webserver():
