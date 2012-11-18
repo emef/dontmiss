@@ -113,7 +113,9 @@ String.prototype.format = function() {
           , dl = $('<dl class="dl-horizontal"/>')
           , tickets = filter(function(t) { return t.user.id === user.id }, this.tickets)
           , contribution = sum(map(function(t) { return t.workout.amount }, tickets))
-          , attendance = parseInt(100 * (1 - tickets.length / this.tickets.length));
+          , attendance = this.tickets.length
+                             ? parseInt(100 * (1 - tickets.length / this.tickets.length))
+                             : 100;
 
         dl.append($('<dt>Missed practices</dt>'));
         dl.append($('<dd>%s</dd>'.format(tickets.length)));
@@ -333,6 +335,6 @@ String.prototype.format = function() {
 
     $(document).ready(function() {
         window.DM = new DontMiss();
-//        DM.login('matt@freshplum.com');
+        DM.login('matt@freshplum.com');
     });
 }(jQuery));
