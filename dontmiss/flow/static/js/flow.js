@@ -271,15 +271,21 @@ String.prototype.format = function() {
     function this_monday() {
         var today = this_day()
           , day = today.getDay()
-          , days_back = (day == 0) ? 6 : day - 1;
-        return add_days(today, -days_back);
+          , days_back = (day == 0) ? 6 : day - 1
+          , monday = add_days(today, -days_back);
+        monday.setHours(0);
+        monday.setMinutes(0);
+        return monday;
     }
 
     function this_sunday() {
         var today = this_day()
           , day = today.getDay()
-          , days_ahead = (day == 0) ? 0 : 7 - day;
-        return add_days(today, days_ahead);
+          , days_ahead = (day == 0) ? 0 : 7 - day
+          , sunday = add_days(today, days_ahead);
+        sunday.setHours(23);
+        sunday.setMinutes(59);
+        return sunday;
     }
 
     function this_day() {
