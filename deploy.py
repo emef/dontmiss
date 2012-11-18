@@ -19,9 +19,13 @@ def update_env():
             run('pip install -r requirements.txt')
 
 def git_push():
-    local('git add .')
-    local('git commit -am "[AUTO COMMIT]"')
-    local('git push origin master')
+    try:
+        local('git add .')
+        local('git commit -am "[AUTO COMMIT]"')
+        local('git push origin master')
+    except:
+        pass
+
 
 @roles('web')
 def git_pull():
