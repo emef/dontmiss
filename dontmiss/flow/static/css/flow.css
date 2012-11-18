@@ -37,3 +37,59 @@ body {
 #main.page {
     display: none;
 }
+
+.hero-unit {
+    min-height: 200px;
+}
+
+.day {
+    width: 13%;
+    height: 100px;
+    float: left;
+    border: 1px solid white;
+    line-height: 1em !important;
+    position: relative;
+    margin-top: 25px;
+}
+
+.day.workout {
+    background: white;
+}
+
+.day .day_of_week {
+    font-size: 9pt;
+    float: left;
+    color: #666;
+    padding: 2px 0px 0px 4px;
+}
+
+.day .price {
+    font-size: 8pt;
+    float: right;
+    color: #666;
+    padding: 2px 4px 0px 0px;
+}
+
+.day .details {
+    position: absolute;
+    bottom: 0px;
+    text-align: center;
+    font-size: 10pt;
+    width: 100%;
+    color: #666;
+}
+
+.day .extra {
+    display: none;
+}
+
+.day:hover .extra {
+    display: block;
+    position: absolute;
+    top: 110px;
+    left: -50px;
+    width: 180px;
+    text-align: center;
+    background: white;
+    padding: 10px;
+}

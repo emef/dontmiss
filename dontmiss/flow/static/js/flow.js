@@ -55,7 +55,7 @@ String.prototype.format = function() {
     DontMiss.prototype.sidebar = function() {
         $('ul.nav-list').each(function() {
             var ul = $(this);
-            ul.find('> li').click(function() {
+            ul.find('> li').on('click.activate', function() {
                 ul.find('> li').removeClass('active');
                 $(this).addClass('active');
             });
@@ -70,11 +70,25 @@ String.prototype.format = function() {
               , link = $('<li><a href="javascript:void(0)">%s</a></li>'.format(user.name));
             history.after(link);
             link.on('click', (function(user) {
-                return function() {
+                return function(e) {
+                    e.preventDefault();
                     dm.show_history(user);
                 }
             }(user)));
         }
+    };
+
+    DontMiss.prototype.view_links = function() {
+        var dm = this
+          , clickfn = function(view) {
+              return function() {
+                  dm.show_view(view);
+              };
+          };
+        $('#schedule').on('click', clickfn('schedule'));
+        $('#total').on('click', clickfn('total'));
+        $('#unpaid').on('click', clickfn('unpaid'));
+        $('#report').on('click', clickfn('report'));
     };
 
     DontMiss.prototype.login = function(email) {
@@ -87,7 +101,9 @@ String.prototype.format = function() {
 
     DontMiss.prototype.main = function() {
         this.history_links();
+        this.view_links();
         this.sidebar();
+        $('#schedule').trigger('click');
         $('.username').text(this.email);
         $('#main').fadeIn('fast');
     };
@@ -109,6 +125,81 @@ String.prototype.format = function() {
         div.append($('<h2>%s\'s Attendance History</h2>'.format(user.name)));
         div.append(dl);
         this.swap_page(div);
+    };
+
+    DontMiss.prototype.show_view = function(view) {
+        var view_fn = ({
+            schedule: this.schedule_view,
+            total: this.total_view,
+            unpaid: this.unpaid_view,
+            report: this.report_view
+        })[view];
+
+        if (view_fn) {
+            var view_div = view_fn.apply(this);
+            this.swap_page(view_div);
+        }
+
+    };
+
+    DontMiss.prototype.schedule_view = function() {
+        var div = $('<div />')
+          , workout_container = $('<div />')
+          , workouts = filter(compose(is_this_week, gen_getattr('dt')), this.workouts);
+
+        for (var day = this_monday(); day <= this_sunday(); day = add_days(day, 1)) {
+            var workout = match_workout(day, workouts)
+              , day_div = $('<div />').addClass('day');
+
+            day_div.append(day_of_week_div(day));
+
+            if (workout) {
+                var details = $('<div />')
+                  , extra = $('<div />')
+                  , price = $('<div />');
+
+                details.append($('<div>%s</div>'.format(workout.type)));
+                details.append($('<div>%s</div>'.format(time(workout.dt))));
+                details.addClass('details');
+
+                extra.append($('<div>%s</div>'.format(workout.note)));
+                extra.addClass('extra');
+
+                price.text('$%s'.format(workout.amount));
+                price.addClass('price');
+
+                day_div.addClass('workout');
+                day_div.append(price);
+                day_div.append(details);
+                day_div.append(extra);
+            }
+            workout_container.append(day_div);
+        }
+
+        div.append($('<h2>%s</h2>'.format('This Week\'s Schedule')));
+        div.append(workout_container);
+        return div;
+    };
+
+    DontMiss.prototype.total_view = function() {
+        var div = $('<div />');
+
+        div.append($('<h2>%s</h2>'.format('Pot Total')));
+        return div;
+    };
+
+    DontMiss.prototype.unpaid_view = function() {
+        var div = $('<div />');
+
+        div.append($('<h2>%s</h2>'.format('Unpaid Tickets')));
+        return div;
+    };
+
+    DontMiss.prototype.report_view = function() {
+        var div = $('<div />');
+
+        div.append($('<h2>%s</h2>'.format('Report a Slacker')));
+        return div;
     };
 
     DontMiss.prototype.swap_page = function(container) {
@@ -149,8 +240,99 @@ String.prototype.format = function() {
         return s;
     }
 
+    function compose() {
+        var fns = Array.prototype.slice.call(arguments);
+        return function() {
+            var args = arguments, val;
+            for (var i=fns.length-1; i>=0; i--) {
+                val = fns[i].apply(this, args);
+                args = [val];
+            }
+            return val;
+        }
+    }
+
+    function gen_getattr(key) {
+        return function(obj) {
+            return obj[key];
+        };
+    }
+
+    function is_this_week(dt) {
+        var dt = ensure_dt(dt)
+          , nearest_monday = this_monday()
+          , nearest_sunday = this_sunday();
+
+        return (dt >= nearest_monday) && (dt <= nearest_sunday);
+    }
+
+    function this_monday() {
+        var today = this_day()
+          , day = today.getDay()
+          , days_back = (day == 0) ? 6 : day - 1;
+        return add_days(today, -days_back);
+    }
+
+    function this_sunday() {
+        var today = this_day()
+          , day = today.getDay()
+          , days_ahead = (day == 0) ? 0 : 7 - day;
+        return add_days(today, days_ahead);
+    }
+
+    function this_day() {
+        var today = new Date();
+        return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    }
+
+    function add_days(dt, days) {
+        var day = 1000 * 60 * 60 * 24;
+        return new Date(dt.getTime() + day * days);
+    }
+
+    function day_of_week(dt) {
+        var strs = ['sun', 'mon', 'tue', 'wed', 'thur', 'fri', 'sat'];
+        return strs[dt.getDay()];
+    }
+
+    function time(dt) {
+        var dt = ensure_dt(dt)
+          , hour = dt.getHours()
+          , minute = dt.getMinutes()
+          , stamp = null;
+        stamp = (hour > 12) ? 'pm' : 'am';
+        hour = (hour > 12) ? hour - 12 : hour;
+        hour = (hour == 0) ? 12 : hour;
+        if (minute < 10) {
+            minute = '0' + minute.toString();
+        }
+        return '%s:%s%s'.format(hour, minute, stamp);
+    }
+
+    function ensure_dt(dt) {
+        if (typeof(dt) === typeof('')) {
+            return new Date(dt);
+        } else {
+            return dt;
+        }
+    }
+
+    function match_workout(day, workouts) {
+        for(var i=0; i<workouts.length; i++) {
+            if (ensure_dt(workouts[i].dt).getDate() === day.getDate()) {
+                return workouts[i];
+            }
+        }
+    }
+
+    function day_of_week_div(dt) {
+        return $('<div class="day_of_week">%s</div>'.format(day_of_week(dt)));
+    }
+
+    window.fn = ensure_dt;
+
     $(document).ready(function() {
         window.DM = new DontMiss();
-        //DM.login('matt@freshplum.com');
+        DM.login('matt@freshplum.com');
     });
 }(jQuery));

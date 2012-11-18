@@ -10,6 +10,8 @@ class Serializable:
             try:
                 if isinstance(val, Serializable):
                     result[key] = val.dict()
+                elif isinstance(val, datetime.datetime):
+                    result[key] = val.isoformat(' ')
                 elif not self.is_serializable(val):
                     result[key] = str(val)
                 else:
@@ -37,7 +39,7 @@ class Workout(models.Model, Serializable):
     type = models.CharField(max_length=40)
     note = models.TextField()
     amount = models.DecimalField(max_digits=5, decimal_places=2)
-    dt = models.DateField()
+    dt = models.DateTimeField()
 
     def __str__(self):
         return '<Workout|%s>' % self.type
