@@ -108,6 +108,16 @@ String.prototype.format = function() {
         $('#main').fadeIn('fast');
     };
 
+    DontMiss.prototype.my_tickets = function () {
+        var tickets = [];
+        for (var i=0; i<this.tickets.length; i++) {
+            if (this.tickets[i].member.email === this.email) {
+                tickets.push(this.tickets[i]);
+            }
+        }
+        return tickets;
+    };
+
     DontMiss.prototype.show_history = function(user) {
         var div = $('<div />')
           , dl = $('<dl class="dl-horizontal"/>')
@@ -184,9 +194,24 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.total_view = function() {
-        var div = $('<div />');
+        var div = $('<div />')
+          , total = 0
+          , members = {}
+          , unique = 0;
+
+        for (var i=0; i<this.tickets.length; i++) {
+            if (this.tickets[i].paid) {
+                var member = this.tickets[i].user.name;
+                total += this.tickets[i].workout.amount;
+                if (!members[member]) {
+                    unique += 1;
+                    members[member] = true;
+                }
+            }
+        }
 
         div.append($('<h2>%s</h2>'.format('Pot Total')));
+        div.append($('<h4>$%s from %s members</h4>'.format(total, unique)));
         return div;
     };
 
