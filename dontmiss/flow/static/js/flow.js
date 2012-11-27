@@ -1,3 +1,40 @@
+var docCookies = {
+  getItem: function (sKey) {
+    if (!sKey || !this.hasItem(sKey)) { return null; }
+    return unescape(document.cookie.replace(new RegExp("(?:^|.*;\\s*)" + escape(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*((?:[^;](?!;))*[^;]?).*"), "$1"));
+  },
+  setItem: function (sKey, sValue, vEnd, sPath, sDomain, bSecure) {
+    if (!sKey || /^(?:expires|max\-age|path|domain|secure)$/i.test(sKey)) { return; }
+    var sExpires = "";
+    if (vEnd) {
+      switch (vEnd.constructor) {
+        case Number:
+          sExpires = vEnd === Infinity ? "; expires=Tue, 19 Jan 2038 03:14:07 GMT" : "; max-age=" + vEnd;
+          break;
+        case String:
+          sExpires = "; expires=" + vEnd;
+          break;
+        case Date:
+          sExpires = "; expires=" + vEnd.toGMTString();
+          break;
+      }
+    }
+    document.cookie = escape(sKey) + "=" + escape(sValue) + sExpires + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "") + (bSecure ? "; secure" : "");
+  },
+  removeItem: function (sKey, sPath) {
+    if (!sKey || !this.hasItem(sKey)) { return; }
+    document.cookie = escape(sKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT" + (sPath ? "; path=" + sPath : "");
+  },
+  hasItem: function (sKey) {
+    return (new RegExp("(?:^|;\\s*)" + escape(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=")).test(document.cookie);
+  },
+  keys: /* optional method: you can safely remove it! */ function () {
+    var aKeys = document.cookie.replace(/((?:^|\s*;)[^\=]+)(?=;|$)|^\s*|\s*(?:\=[^;]*)?(?:\1|$)/g, "").split(/\s*(?:\=[^;]*)?;\s*/);
+    for (var nIdx = 0; nIdx < aKeys.length; nIdx++) { aKeys[nIdx] = unescape(aKeys[nIdx]); }
+    return aKeys;
+  }
+};
+
 String.prototype.format = function() {
     var s = this.split('%s')
       , pieces = []
@@ -96,6 +133,7 @@ String.prototype.format = function() {
         this.email = email;
         $('#login').fadeOut('fast', function() {
             dm.main();
+            docCookies.setItem('email', email, 60 * 60 * 24 * 3);
         });
     };
 
@@ -106,6 +144,7 @@ String.prototype.format = function() {
         $('#schedule').trigger('click');
         $('.username').text(this.email);
         $('#main').fadeIn('fast');
+        $('a#unpaid').trigger('click');
     };
 
     DontMiss.prototype.my_tickets = function () {
@@ -216,9 +255,31 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.unpaid_view = function() {
-        var div = $('<div />');
+        var div = $('<div />')
+          , dm = this
+          , ticket = null
+          , my_tickets = filter(function(t) {
+              return t.user.email === dm.email
+          }, this.tickets);
 
         div.append($('<h2>%s</h2>'.format('Unpaid Tickets')));
+
+        for (var i=0; i<my_tickets.length; i++) {
+            ticket = ticket_div(my_tickets[i]);
+            ticket.find('button').on('click', (function(ticket) {
+                return function() {
+                    var sku = ticket.sku;
+                    if (Helium.cart.get().indexOf(sku) === -1) {
+                        Helium.cart.add(sku, 1);
+                    }
+                }
+            }(my_tickets[i])));
+            div.append(ticket);
+            if (i !== my_tickets.length-1) {
+                div.append($('<hr />'));
+            }
+        }
+
         return div;
     };
 
@@ -350,6 +411,10 @@ String.prototype.format = function() {
         }
     }
 
+    function proper_str(str) {
+        return '%s%s'.format(str[0].toUpperCase(), str.substr(1));
+    }
+
     function match_workout(day, workouts) {
         for(var i=0; i<workouts.length; i++) {
             if (ensure_dt(workouts[i].dt).getDate() === day.getDate()) {
@@ -362,10 +427,22 @@ String.prototype.format = function() {
         return $('<div class="day_of_week">%s</div>'.format(day_of_week(dt)));
     }
 
+    function ticket_div(ticket) {
+        var div = $('<div class="ticket" />')
+          , dt = ensure_dt(ticket.workout.dt);
+        div.append($('<h4>%s on %s</h4>'.format(proper_str(ticket.workout.type),
+                                                dt.toDateString())));
+        div.append($('<span>$%s</span>'.format(ticket.workout.amount)));
+        div.append($('<button class="helium-buy-now">Pay Ticket</button>'));
+        return div;
+    }
+
     window.fn = ensure_dt;
 
     $(document).ready(function() {
         window.DM = new DontMiss();
-        //DM.login('matt@freshplum.com');
+        if (docCookies.hasItem('email')) {
+            DM.login(docCookies.getItem('email'));
+        }
     });
 }(jQuery));
