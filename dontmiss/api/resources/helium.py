@@ -5,6 +5,9 @@ from dontmiss.api.http import JsonResponse
 
 class HeliumResource(Resource):
     def post(self, request):
+        with open('/tmp/helium', 'w') as f:
+            f.write(request.body)
+
         status = 200
         try:
             order = simplejson.loads(request.body)
