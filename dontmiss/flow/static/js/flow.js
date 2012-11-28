@@ -160,7 +160,7 @@ String.prototype.format = function() {
         this.helium();
         $('.username').text(this.email);
         $('#main').fadeIn('fast');
-        $('a#report').trigger('click');
+        $('a#schedule').trigger('click');
     };
 
     DontMiss.prototype.my_tickets = function () {
