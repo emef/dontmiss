@@ -10,7 +10,7 @@ class HeliumResource(Resource):
 
         status = 200
         try:
-            order = simplejson.loads(request.body)
+            order = simplejson.loads(request.body).get('data')
             email = order['customer']['email']
             for item in order['items']:
                 ticket = Ticket.objects.get(user__email=email,
