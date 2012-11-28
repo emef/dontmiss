@@ -104,19 +104,14 @@ String.prototype.format = function() {
             sku;
         Helium.cart.clear();
         $('#Helium').on('order-success', function(e, order) {
-            for(var i=0; i<order.items.length; i++) {
-                sku = order.items[i].sku;
-                for (var j=0; j<dm.tickets.length; j++) {
-                    if (dm.tickets[j].user.email = dm.email) {
-                        if (dm.tickets[j].workout.he3_sku == sku) {
-                            dm.tickets[j].paid = true;
-                            set_paid(dm.tickets[j]);
-                            break;
-                        }
-                    }
+            $.ajax({
+                url: '/api/tickets',
+                dataType: 'json',
+                success: function(tickets) {
+                    dm.tickets = tickets;
+                    dm.show_view('unpaid');
                 }
-            }
-            dm.show_view('unpaid');
+            });
         });
     };
 

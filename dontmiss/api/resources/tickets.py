@@ -21,17 +21,3 @@ class TicketsResource(Resource):
             status = 400
 
         return JsonResponse(response, status=status)
-
-    def delete(self, request):
-        status = 200
-        try:
-            pk = int(request.REQUEST.get('id'))
-            ticket = Ticket.objects.get(pk=pk)
-            ticket.paid = True
-            ticket.save()
-            response = {'status': 'ok'}
-        except Exception as e:
-            status = 400
-            response = {'status': 'error', 'message': str(e)}
-
-        return JsonResponse(response, status=status)
