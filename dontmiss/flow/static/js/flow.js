@@ -260,7 +260,7 @@ String.prototype.format = function() {
           , dm = this
           , ticket = null
           , my_tickets = filter(function(t) {
-              return t.user.email === dm.email
+              return (t.user.email === dm.email && !t.paid)
           }, this.tickets);
 
         div.append($('<h2>%s</h2>'.format('Unpaid Tickets')));

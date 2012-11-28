@@ -49,7 +49,7 @@ class Workout(models.Model, Serializable):
     dt = models.DateTimeField()
 
     def __str__(self):
-        return '<Workout|%s>' % self.type
+        return '<Workout|%s|%s>' % (self.type, str(self.dt.date()))
 
 class Ticket(models.Model, Serializable):
     user = models.ForeignKey('Member')
@@ -74,7 +74,7 @@ def create_workout(sender, instance, created, **kwargs):
         auth = (HE3_KEY, '')
         data = {
             'price': int(100 * instance.amount),
-            'name': 'Workout #%d' % instance.id,
+            'name': 'Workout %s' % (str(instance.dt.date())),
             'type': 'general',
         }
 
@@ -86,3 +86,9 @@ def create_workout(sender, instance, created, **kwargs):
         else:
             instance.delete()
             raise ValueError('; '.join(response['errors'].values()))
+
+@receiver(signals.pre_delete, sender=Workout)
+def delete_workout(sender, instance, **kwargs):
+    url = items_url(instance.he3_sku)
+    auth = (HE3_KEY, '')
+    requests.delete(url, auth=auth)
