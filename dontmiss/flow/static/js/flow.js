@@ -99,6 +99,27 @@ String.prototype.format = function() {
         });
     };
 
+    DontMiss.prototype.helium = function() {
+        var dm = this,
+            sku;
+        Helium.cart.clear();
+        $('#Helium').on('order-success', function(e, order) {
+            for(var i=0; i<order.items.length; i++) {
+                sku = order.items[i].sku;
+                for (var j=0; j<dm.tickets.length; j++) {
+                    if (dm.tickets[j].user.email = dm.email) {
+                        if (dm.tickets[j].workout.he3_sku == sku) {
+                            dm.tickets[j].paid = true;
+                            set_paid(dm.tickets[j]);
+                            break;
+                        }
+                    }
+                }
+            }
+            dm.show_view('unpaid');
+        });
+    };
+
     DontMiss.prototype.history_links = function() {
         var dm = this
           , history = $('#history');
@@ -138,10 +159,10 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.main = function() {
-        Helium.cart.clear();
         this.history_links();
         this.view_links();
         this.sidebar();
+        this.helium();
         $('#schedule').trigger('click');
         $('.username').text(this.email);
         $('#main').fadeIn('fast');
@@ -149,9 +170,10 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.my_tickets = function () {
-        var tickets = [];
+        var tickets = [], ticket;
         for (var i=0; i<this.tickets.length; i++) {
-            if (this.tickets[i].member.email === this.email) {
+            ticket = this.tickets[i];
+            if (!ticket.paid && ticket.user.email === this.email) {
                 tickets.push(this.tickets[i]);
             }
         }
@@ -259,9 +281,7 @@ String.prototype.format = function() {
         var div = $('<div />')
           , dm = this
           , ticket = null
-          , my_tickets = filter(function(t) {
-              return (t.user.email === dm.email && !t.paid)
-          }, this.tickets);
+          , my_tickets = this.my_tickets();
 
         div.append($('<h2>%s</h2>'.format('Unpaid Tickets')));
 
@@ -296,6 +316,8 @@ String.prototype.format = function() {
         $('.hero-unit').children().remove();
         $('.hero-unit').append(container);
     };
+
+
 
     /**************************************************
      * utils */
@@ -439,7 +461,15 @@ String.prototype.format = function() {
         return div;
     }
 
-    window.fn = ensure_dt;
+    function set_paid(ticket) {
+        $.ajax({
+            url: '/api/tickets?_method=delete',
+            type: 'get',
+            data: {id: ticket.id}
+        });
+    }
+
+    window.fn = set_paid;
 
     $(document).ready(function() {
         window.DM = new DontMiss();
