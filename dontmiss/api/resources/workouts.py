@@ -5,7 +5,9 @@ from dontmiss.api.models import Workout
 
 class WorkoutsResource(Resource):
     def get(self, request):
-        return JsonResponse([w.dict() for w in Workout.objects.all()], status=200)
+        workouts = list(Workout.objects.all())
+        workouts.sort(key=lambda w: w.dt, reverse=True)
+        return JsonResponse([w.dict() for w in workouts], status=200)
 
     def put(self, request):
         status = 200

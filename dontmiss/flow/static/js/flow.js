@@ -55,23 +55,28 @@ String.prototype.format = function() {
 };
 
 (function($) {
-    function DontMiss() { this.preinit(); }
+    function DontMiss() { this.init(); }
 
-    DontMiss.prototype.preinit = function() {
+    DontMiss.prototype.populate = function(callback) {
         var dm = this;
         $.when(get('/api/tickets'),
                get('/api/workouts'),
                get('/api/users'))
          .done(function(r_tickets, r_workouts, r_users) {
-             dm.init(r_tickets[0], r_workouts[0], r_users[0]);
+             dm.tickets = r_tickets[0];
+             dm.workouts = r_workouts[0];
+             dm.users = r_users[0];
+             if (callback) {
+                 callback();
+             }
          });
     };
 
     DontMiss.prototype.init = function(tickets, workouts, users) {
-        this.tickets = tickets;
-        this.workouts = workouts;
-        this.users = users;
-        this.setup();
+        var dm = this;
+        this.populate(function() {
+            dm.setup();
+        });
     };
 
     DontMiss.prototype.setup = function() {
@@ -153,10 +158,9 @@ String.prototype.format = function() {
         this.view_links();
         this.sidebar();
         this.helium();
-        $('#schedule').trigger('click');
         $('.username').text(this.email);
         $('#main').fadeIn('fast');
-        $('a#unpaid').trigger('click');
+        $('a#report').trigger('click');
     };
 
     DontMiss.prototype.my_tickets = function () {
@@ -262,7 +266,8 @@ String.prototype.format = function() {
             }
         }
 
-        div.append($('<h2>%s</h2>'.format('Pot Total')));
+        div.append($('<h2>%s</h2>'.format('Pot Status')));
+        div.append($('<p>This money goes towards a team reward after the event.</p>'));
         div.append($('<h4>$%s from %s members</h4>'.format(total, unique)));
         return div;
     };
@@ -273,7 +278,8 @@ String.prototype.format = function() {
           , ticket = null
           , my_tickets = this.my_tickets();
 
-        div.append($('<h2>%s</h2>'.format('Unpaid Tickets')));
+        div.append($('<h2>%s</h2>'.format('Your Tickets')));
+        div.append($('<p>These are your unpaid tickets.</p>'));
 
         for (var i=0; i<my_tickets.length; i++) {
             ticket = ticket_div(my_tickets[i]);
@@ -296,9 +302,80 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.report_view = function() {
-        var div = $('<div />');
+        var dm = this
+          , div = $('<div />')
+          , container
+          , name_input = $('<input class="span3" type="text" placeholder="name" />')
+          , workouts = filter(function(w) { return delta_days(w.dt) <= 7 },
+                              this.workouts)
+          , names = map(function(u) { return u.name }, this.users)
+          , dropdown = $('<div class="btn-group"></div>')
+          , dropdown_ul = $('<ul class="dropdown-menu"></ul>');
+
+
+        name_input.typeahead({source: names});
 
         div.append($('<h2>%s</h2>'.format('Report a Slacker')));
+        div.append($('<p>Type the offender\'s email, and click the missed workout to submit.</p>'));
+
+        container = $('<div class="input-prepend input-append" />');
+        container.append($('<span class="add-on">@</span>'));
+        container.append(name_input);
+
+        dropdown.append($('<button class="btn dropdown-toggle" data-toggle="dropdown">\
+                                Choose Workout\
+                                <span class="caret"></span>\
+                            </button>'));
+
+        for (var i=0; i<workouts.length; i++) {
+            var dt_text = ensure_dt(workouts[i].dt).toDateString()
+              , link_text = '%s %s'.format(workouts[i].type, dt_text)
+              , workout_li = $('<li><a href="#">%s</a></li>'.format(link_text));
+
+            workout_li.on('click', (function(workout) {
+                return function() {
+                    var name = name_input.val();
+                    $.ajax({
+                        url: '/api/tickets?_method=put',
+                        data: {
+                            name: name,
+                            workout_id: workout.id
+                        },
+                        dataType: 'json',
+                        success: function(r) {
+                            dm.populate(function() {
+                                dm.show_view('report');
+                            });
+                        }
+                    });
+                }
+            }(workouts[i])));
+
+            dropdown_ul.append(workout_li);
+        }
+
+        dropdown.append(dropdown_ul);
+        container.append(dropdown);
+        div.append(container);
+
+        container = $('<div id="outstanding" />');
+        container.append('<h4>%s</h4>'.format('Outstanding tickets'));
+
+        for (var i=0; i<this.tickets.length; i++) {
+            if (!this.tickets[i].paid) {
+                var name = this.tickets[i].user.name
+                , type = this.tickets[i].workout.type
+                , amount = this.tickets[i].workout.amount
+                , day = ensure_dt(this.tickets[i].workout.dt).toDateString();
+
+                container.append('<div>%s missed a %s on %s for $%s</div>'.format(
+                    name, type, day, amount));
+            }
+        }
+
+        div.append(container);
+
+
         return div;
     };
 
@@ -401,6 +478,11 @@ String.prototype.format = function() {
     function day_of_week(dt) {
         var strs = ['sun', 'mon', 'tue', 'wed', 'thur', 'fri', 'sat'];
         return strs[dt.getDay()];
+    }
+
+    function delta_days(dt) {
+        var today = this_day();
+        return Math.ceil(Math.abs(today - ensure_dt(dt)) / (1000 * 60 * 60 * 24));
     }
 
     function time(dt) {
