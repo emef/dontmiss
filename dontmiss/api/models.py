@@ -1,6 +1,12 @@
 import datetime
 import simplejson
+import requests
+import uuid
 from django.db import models
+from django.db.models import signals
+from django.dispatch import receiver
+
+HE3_KEY = '7e4f434d3377c7a3d7add62fc709c12e'
 
 class Serializable:
     def dict(self):
@@ -39,6 +45,7 @@ class Workout(models.Model, Serializable):
     type = models.CharField(max_length=40)
     note = models.TextField()
     amount = models.DecimalField(max_digits=5, decimal_places=2)
+    he3_sku = models.CharField(max_length=100, blank=True)
     dt = models.DateTimeField()
 
     def __str__(self):
@@ -51,3 +58,31 @@ class Ticket(models.Model, Serializable):
 
     def __str__(self):
         return '<Ticket|%s>' % self.user.email
+
+
+
+def items_url(sku):
+    return 'https://gethelium.com/api/v1/items/%s' % sku
+
+##################################################
+# signals
+@receiver(signals.post_save, sender=Workout)
+def create_workout(sender, instance, created, **kwargs):
+    if created:
+        sku = str(uuid.uuid4())
+        url = items_url(sku)
+        auth = (HE3_KEY, '')
+        data = {
+            'price': int(100 * instance.amount),
+            'name': 'Workout #%d' % instance.id,
+            'type': 'general',
+        }
+
+        response = requests.put(url, auth=auth, data=data).json
+
+        if 'errors' not in response:
+            instance.he3_sku = sku
+            instance.save()
+        else:
+            instance.delete()
+            raise ValueError('; '.join(response['errors'].values()))

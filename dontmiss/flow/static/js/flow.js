@@ -138,6 +138,7 @@ String.prototype.format = function() {
     };
 
     DontMiss.prototype.main = function() {
+        Helium.cart.clear();
         this.history_links();
         this.view_links();
         this.sidebar();
@@ -268,10 +269,11 @@ String.prototype.format = function() {
             ticket = ticket_div(my_tickets[i]);
             ticket.find('button').on('click', (function(ticket) {
                 return function() {
-                    var sku = ticket.sku;
+                    var sku = ticket.workout.he3_sku;
                     if (Helium.cart.get().indexOf(sku) === -1) {
                         Helium.cart.add(sku, 1);
                     }
+                    Helium.show();
                 }
             }(my_tickets[i])));
             div.append(ticket);
