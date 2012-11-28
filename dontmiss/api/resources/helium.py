@@ -16,7 +16,7 @@ class HeliumResource(Resource):
                 ticket.save()
 
             response = {'status': 'ok'}
-        except Excepton as e:
+        except Exception as e:
             status = 400
             response = {'error': str(e)}
 
