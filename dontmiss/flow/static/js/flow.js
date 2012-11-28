@@ -104,14 +104,9 @@ String.prototype.format = function() {
             sku;
         Helium.cart.clear();
         $('#Helium').on('order-success', function(e, order) {
-            $.ajax({
-                url: '/api/tickets',
-                dataType: 'json',
-                success: function(tickets) {
-                    dm.tickets = tickets;
-                    dm.show_view('unpaid');
-                }
-            });
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
         });
     };
 
